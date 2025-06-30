@@ -1,0 +1,48 @@
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.tree import DecisionTreeClassifier, export_graphviz
+from sklearn.metrics import accuracy_score
+import graphviz
+from sklearn.ensemble import RandomForestClassifier
+import matplotlib.pyplot as plt
+from sklearn.model_selection import cross_val_score
+
+df = pd.read_csv("heart.csv")
+X = df.drop("target", axis=1)
+y = df["target"]
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+dt = DecisionTreeClassifier(random_state=42)
+dt.fit(X_train, y_train)
+y_pred = dt.predict(X_test)
+print("Decision Tree Accuracy:", accuracy_score(y_test, y_pred))
+
+dot_data = export_graphviz(dt, out_file=None, feature_names=X.columns, 
+                           class_names=["No Disease", "Disease"], filled=True, rounded=True)
+graph = graphviz.Source(dot_data)
+graph.render("decision_tree")
+graph.view()
+
+dt_pruned = DecisionTreeClassifier(max_depth=3, random_state=42)
+dt_pruned.fit(X_train, y_train)
+y_pruned_pred = dt_pruned.predict(X_test)
+print("Pruned Tree Accuracy:", accuracy_score(y_test, y_pruned_pred))
+
+rf = RandomForestClassifier(n_estimators=100, random_state=42)
+rf.fit(X_train, y_train)
+y_rf_pred = rf.predict(X_test)
+print("Random Forest Accuracy:", accuracy_score(y_test, y_rf_pred))
+
+importances = rf.feature_importances_
+features = X.columns
+plt.figure(figsize=(10,6))
+plt.barh(features, importances)
+plt.xlabel("Feature Importance")
+plt.title("Random Forest Feature Importance")
+plt.show()
+
+dt_scores = cross_val_score(dt, X, y, cv=5)
+rf_scores = cross_val_score(rf, X, y, cv=5)
+print("Decision Tree CV Accuracy:", dt_scores.mean())
+print("Random Forest CV Accuracy:", rf_scores.mean())
